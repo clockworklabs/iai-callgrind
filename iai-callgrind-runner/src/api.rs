@@ -206,6 +206,7 @@ pub struct LibraryBenchmarkConfig {
     pub regression: Option<RegressionConfig>,
     pub tools: Tools,
     pub tools_override: Option<Tools>,
+    pub custom_entry_point: Option<String>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -430,6 +431,8 @@ impl LibraryBenchmarkConfig {
             } else {
                 // do nothing
             }
+            self.custom_entry_point =
+                update_option(&self.custom_entry_point, &other.custom_entry_point);
         }
         self
     }
@@ -569,6 +572,7 @@ mod tests {
                 outfile_modifier: None,
                 show_log: None,
             }]),
+            custom_entry_point: Some("bananas!".to_string()),
             tools_override: None,
         };
 
@@ -591,6 +595,7 @@ mod tests {
                 outfile_modifier: None,
                 show_log: None,
             }]),
+            custom_entry_point: Some("bananas!".to_string()),
             tools_override: Some(Tools(vec![])),
         };
         let expected = LibraryBenchmarkConfig {

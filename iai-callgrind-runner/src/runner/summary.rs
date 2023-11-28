@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use glob::glob;
 use indexmap::{indexmap, IndexMap};
+use log::debug;
 #[cfg(feature = "schema")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -270,10 +271,16 @@ impl BenchmarkSummary {
     /// If this `BenchmarkSummary` has a value in the option `SummaryOutput` save it
     pub fn save(&self) -> Result<()> {
         if let Some(output) = &self.summary_output {
+            debug!(
+                "Saving {:?} to {:?}, style: {:?}",
+                self.id, output.path, output.format
+            );
             match output.format {
                 SummaryFormat::Json => self.save_json(false)?,
                 SummaryFormat::PrettyJson => self.save_json(true)?,
             }
+        } else {
+            debug!("No summary output file specified for {:?}", self.id);
         }
 
         Ok(())

@@ -96,7 +96,9 @@ impl Groups {
                         args: library_benchmark_bench.args,
                         options: RunOptions {
                             env_clear: config.env_clear.unwrap_or(true),
-                            entry_point: Some("iai_callgrind::bench::*".to_owned()),
+                            entry_point: config
+                                .custom_entry_point
+                                .or_else(|| Some("iai_callgrind::bench::".to_owned())),
                             envs,
                             ..Default::default()
                         },
@@ -153,7 +155,12 @@ impl LibBench {
             ]
         };
 
-        let sentinel = Sentinel::new("iai_callgrind::bench::");
+        let sentinel = Sentinel::new(
+            self.options
+                .entry_point
+                .as_ref()
+                .expect("entry point should always be set"),
+        );
         let output_path = if let Some(bench_id) = &self.id {
             ToolOutputPath::with_init(
                 ValgrindTool::Callgrind,
@@ -202,11 +209,16 @@ impl LibBench {
             println!("{}", tool_summary_header(ValgrindTool::Callgrind));
         }
 
+        let mut options = self.options.clone();
+        // we don't want an asterisk above, when constructing the sentinel,
+        // but having one here is useful in case of generics.
+        options.entry_point = options.entry_point.map(|s| format!("{s}*"));
+
         let output = callgrind_command.run(
             self.callgrind_args.clone(),
             &config.bench_bin,
             &args,
-            self.options.clone(),
+            options,
             &output_path,
         )?;
 

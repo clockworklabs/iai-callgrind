@@ -60,6 +60,7 @@ impl LibraryBenchmarkConfig {
             regression: Option::default(),
             tools: internal::InternalTools::default(),
             tools_override: Option::default(),
+            custom_entry_point: Option::default(),
         })
     }
 
@@ -516,6 +517,87 @@ impl LibraryBenchmarkConfig {
             .tools_override
             .get_or_insert(internal::InternalTools::default())
             .update_all(tools.into_iter().map(Into::into));
+        self
+    }
+
+    /// Override the entry point for library benchmarks.
+    /// This is a very unusual configuration.
+    /// Your benchmarks must be called by the entry point you specify.
+    ///
+    /// The entry point can either be a function, or a module.
+    /// If any function starting with the name you pass is in the call stack, callgrind will collect data.
+    /// If no such function is called in your benchmark, iai-callgrind will throw an error.
+    ///
+    /// This is mainly useful for benchmarking functions that dispatch work to other threads;
+    /// however, you have to make sure your entry point is called on EVERY thread you want to collect
+    /// data from.
+    ///
+    /// For example, if in `my_library` we define a function `callgrind_flag`:
+    /// ```
+    /// use std::hint::black_box;
+    ///
+    /// #[inline(never)]
+    /// pub fn callgrind_flag<T, F: FnOnce() -> T>(f: F) -> T {
+    ///     black_box(f())
+    /// }
+    /// ```
+    ///
+    /// Then we can use this as a custom entry point as follows.
+    ///
+    /// ```rust
+    /// use iai_callgrind::{
+    ///     main, library_benchmark, library_benchmark_group, LibraryBenchmarkConfig, Tool, ValgrindTool
+    /// };
+    ///
+    /// #[library_benchmark(config = LibraryBenchmarkConfig::default()
+    ///     .with_custom_entry_point("my_library::callgrind_flag") // root of the path must be crate name!
+    /// )]
+    /// fn some_func() {
+    ///     my_library::callgrind_flag(|| {
+    ///        do_work();
+    ///     });
+    /// }
+    ///
+    /// fn do_work() {
+    ///     // if we want callgrind to collect data, it needs to see callgrind_flag
+    ///     // in the call stack.
+    ///     my_library::callgrind_flag(|| {
+    ///         let (tx, rx) = std::sync::mpsc::channel();
+    ///
+    ///         std::thread::spawn(move || {
+    ///             // we are on a different thread now! Call it again!
+    ///             my_library::callgrind_flag(|| {
+    ///                 while let Ok(item) = rx.recv() {
+    ///                     // ...do expensive work with item...
+    ///                 }
+    ///             });
+    ///         });
+    ///         for i in 0..100 {
+    ///             tx.send(i);
+    ///         }
+    ///         drop(tx);
+    ///    });
+    /// }
+    ///
+    /// # mod my_library { pub fn callgrind_flag<T, F: FnOnce() -> T>(f: F) -> T { f() } }
+    ///
+    /// library_benchmark_group!(
+    ///     name = some_group;
+    ///     benchmarks = some_func
+    /// );
+    ///
+    /// # fn main() {
+    /// main!(
+    ///     config = LibraryBenchmarkConfig::default()
+    ///         .tool(
+    ///             Tool::new(ValgrindTool::DHAT),
+    ///         );
+    ///     library_benchmark_groups = some_group
+    /// );
+    /// # }
+
+    pub fn with_custom_entry_point<T: Into<String>>(&mut self, entry_point: T) -> &mut Self {
+        self.0.custom_entry_point = Some(entry_point.into());
         self
     }
 }
