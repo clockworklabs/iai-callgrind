@@ -46,6 +46,8 @@ jobs:
           - nightly
     steps:
       - uses: actions/checkout@v3
+      - name: Check and update rustup
+        uses: clockworklabs/SpacetimeDB/.github/actions/ensure-rustup@8adcbd15a19714745658412a8f238b79331cf6ad # rustup >= 1.29.2
       - uses: dtolnay/rust-toolchain@nightly
       - uses: dtolnay/rust-toolchain@master
         with:
@@ -64,6 +66,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: npm install prettier
+      - name: Check and update rustup
+        uses: clockworklabs/SpacetimeDB/.github/actions/ensure-rustup@8adcbd15a19714745658412a8f238b79331cf6ad # rustup >= 1.29.2
       - uses: dtolnay/rust-toolchain@nightly
         with:
           components: rustfmt
@@ -95,6 +99,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Check and update rustup
+        uses: clockworklabs/SpacetimeDB/.github/actions/ensure-rustup@8adcbd15a19714745658412a8f238b79331cf6ad # rustup >= 1.29.2
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.toolchain }}
@@ -148,6 +154,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Check and update rustup
+        uses: clockworklabs/SpacetimeDB/.github/actions/ensure-rustup@8adcbd15a19714745658412a8f238b79331cf6ad # rustup >= 1.29.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2.2.0
       - name: Run doc tests
